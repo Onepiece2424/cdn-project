@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDN — Delivery Active</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0b0f14;
+      --surface: #131920;
+      --border: #1e2a35;
+      --active: #00e5a0;
+      --active-dim: #00e5a022;
+      --text: #c8d6e0;
+      --muted: #4a6070;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Inter', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── pulse ring ── */
+    .pulse-wrap {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 2.5rem;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--active);
+      animation: pulse 2.4s ease-out infinite;
+      opacity: 0;
+    }
+
+    .pulse-ring:nth-child(2) {
+      animation-delay: 0.8s;
+    }
+
+    .pulse-ring:nth-child(3) {
+      animation-delay: 1.6s;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.6);
+        opacity: 0.7;
+      }
+
+      100% {
+        transform: scale(1.9);
+        opacity: 0;
+      }
+    }
+
+    .pulse-dot {
+      position: absolute;
+      inset: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--active);
+      box-shadow: 0 0 20px var(--active);
+    }
+
+    /* ── heading ── */
+    .status-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--active);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 5vw, 2.8rem);
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      text-align: center;
+      margin-bottom: 0.9rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.7;
+      margin-bottom: 3rem;
+    }
+
+    /* ── info cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1px;
+      width: 100%;
+      max-width: 640px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 1.4rem 1.6rem;
+    }
+
+    .card-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-value {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .card-value.ok {
+      color: var(--active);
+    }
+
+    /* ── terminal block ── */
+    .terminal {
+      width: 100%;
+      max-width: 640px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-r {
+      background: #ff5f57;
+    }
+
+    .dot-y {
+      background: #febc2e;
+    }
+
+    .dot-g {
+      background: #28c840;
+    }
+
+    .terminal-body {
+      padding: 1.2rem 1.4rem;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 2;
+      color: var(--muted);
+    }
+
+    .terminal-body .cmd {
+      color: var(--text);
+    }
+
+    .terminal-body .ok {
+      color: var(--active);
+    }
+
+    .terminal-body .info {
+      color: #5b8fa8;
+    }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 3rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pulse-ring {
+        animation: none;
+        opacity: 0.3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="pulse-wrap">
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-dot"></div>
+  </div>
+
+  <p class="status-label">● delivery active</p>
+  <h1>CDN is live.</h1>
+  <p class="subtitle">
+    S3 + CloudFront による静的コンテンツ配信が正常に動作しています。<br>
+    このページは CloudFront エッジノード経由で配信されています。
+  </p>
+
+  <div class="cards">
+    <div class="card">
+      <p class="card-label">Origin</p>
+      <p class="card-value">Amazon S3</p>
+    </div>
+    <div class="card">
+      <p class="card-label">CDN</p>
+      <p class="card-value">CloudFront</p>
+    </div>
+    <div class="card">
+      <p class="card-label">Protocol</p>
+      <p class="card-value ok">HTTPS ✓</p>
+    </div>
+    <div class="card">
+      <p class="card-label">IaC</p>
+      <p class="card-value">Terraform</p>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="info">$</span> <span class="cmd">terraform apply</span></div>
+      <div><span class="ok">✓</span> aws_s3_bucket.static</div>
+      <div><span class="ok">✓</span> aws_s3_bucket_public_access_block.static</div>
+      <div><span class="ok">✓</span> aws_cloudfront_origin_access_control.oac</div>
+      <div><span class="ok">✓</span> aws_cloudfront_distribution.cdn</div>
+      <div><span class="ok">✓</span> aws_s3_bucket_policy.static</div>
+      <div>&nbsp;</div>
+      <div><span class="ok">Apply complete! 5 added, 0 changed, 0 destroyed.</span></div>
+    </div>
+  </div>
+
+  <footer>cdn-project / dist / index.html</footer>
+
+</body>
+
+</html>
