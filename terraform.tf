@@ -7,7 +7,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "remote-backend-riorio-bucket"
+    bucket = "cdn-project-riorio-remote-backend-bucket"
     key    = "dev/terraform.tfstate"
     region = "ap-northeast-1"
   }
