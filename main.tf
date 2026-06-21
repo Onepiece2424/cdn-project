@@ -2,6 +2,11 @@ provider "aws" {
   region = "ap-northeast-1"
 }
 
+provider "aws" {
+  alias  = "virginia"
+  region = "us-east-1"
+}
+
 # オリジン
 resource "aws_s3_bucket" "my-company-dev-123456" {
   bucket = "riorio-test-bucket"
@@ -25,6 +30,7 @@ resource "aws_s3_bucket_public_access_block" "static" {
 resource "aws_cloudfront_distribution" "cdn" {
   enabled             = true
   default_root_object = "index.html"
+  web_acl_id          = aws_wafv2_web_acl.main.arn
 
   origin {
     domain_name              = aws_s3_bucket.my-company-dev-123456.bucket_regional_domain_name
@@ -49,17 +55,17 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 
   # SPA の場合は 403/404 を index.html にリダイレクト
-  custom_error_response {
-    error_code         = 403
-    response_code      = 200
-    response_page_path = "/index.html"
-  }
+  # custom_error_response {
+  #   error_code         = 403
+  #   response_code      = 200
+  #   response_page_path = "/index.html"
+  # }
 
-  custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
-  }
+  # custom_error_response {
+  #   error_code         = 404
+  #   response_code      = 200
+  #   response_page_path = "/index.html"
+  # }
 
   restrictions {
     geo_restriction { restriction_type = "none" }
@@ -100,4 +106,105 @@ data "aws_iam_policy_document" "s3_policy" {
 resource "aws_s3_bucket_policy" "static" {
   bucket = aws_s3_bucket.my-company-dev-123456.id
   policy = data.aws_iam_policy_document.s3_policy.json
+}
+
+resource "aws_wafv2_web_acl" "main" {
+  provider = aws.virginia
+
+  name        = "managed-rule-main"
+  description = "Main of a managed rule."
+  scope       = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "rule-1"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+
+        rule_action_override {
+          action_to_use {
+            count {}
+          }
+
+          name = "SizeRestrictions_QUERYSTRING"
+        }
+
+        rule_action_override {
+          action_to_use {
+            count {}
+          }
+
+          name = "NoUserAgent_HEADER"
+        }
+
+        scope_down_statement {
+          geo_match_statement {
+            country_codes = ["JP"]
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "cfn-request-log"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "block-test"
+    priority = 0
+
+    action {
+      block {}
+    }
+
+    statement {
+      byte_match_statement {
+        positional_constraint = "CONTAINS"
+
+        search_string = "waf-test"
+
+        field_to_match {
+          query_string {}
+        }
+
+        text_transformation {
+          priority = 0
+          type     = "NONE"
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "block-test"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  tags = {
+    Tag1 = "Value1"
+    Tag2 = "Value2"
+  }
+
+  token_domains = ["mywebsite.com", "myotherwebsite.com"]
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "cfn-request-log"
+    sampled_requests_enabled   = true
+  }
 }
