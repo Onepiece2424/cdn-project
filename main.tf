@@ -234,3 +234,10 @@ resource "aws_s3_bucket_acl" "logs" {
   acl        = "log-delivery-write" # CloudFrontがログを書き込むための権限
   depends_on = [aws_s3_bucket_ownership_controls.logs]
 }
+
+resource "aws_s3_bucket_versioning" "static" {
+  bucket = aws_s3_bucket.my-company-dev-123456.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
