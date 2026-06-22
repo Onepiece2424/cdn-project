@@ -74,6 +74,13 @@ resource "aws_cloudfront_distribution" "cdn" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+
+  # ログ設定を追加
+  logging_config {
+    bucket          = aws_s3_bucket.logs.bucket_domain_name
+    prefix          = "cloudfront/" # ログファイルのフォルダ名
+    include_cookies = false
+  }
 }
 
 # OAC
@@ -207,4 +214,23 @@ resource "aws_wafv2_web_acl" "main" {
     metric_name                = "cfn-request-log"
     sampled_requests_enabled   = true
   }
+}
+
+# ログ保存専用のバケット
+resource "aws_s3_bucket" "logs" {
+  bucket = "riorio-test-logs"
+}
+
+# CloudFront からの書き込みを許可するACL設定
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "logs" {
+  bucket     = aws_s3_bucket.logs.id
+  acl        = "log-delivery-write" # CloudFrontがログを書き込むための権限
+  depends_on = [aws_s3_bucket_ownership_controls.logs]
 }
