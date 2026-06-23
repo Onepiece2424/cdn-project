@@ -241,3 +241,31 @@ resource "aws_s3_bucket_versioning" "static" {
     status = "Enabled"
   }
 }
+
+# GitHub Actions 用 IAM ポリシー
+resource "aws_iam_policy" "github_actions" {
+  name = "github-actions-deploy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "${aws_s3_bucket.my-company-dev-123456.arn}",
+          "${aws_s3_bucket.my-company-dev-123456.arn}/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["cloudfront:CreateInvalidation"]
+        Resource = [aws_cloudfront_distribution.cdn.arn]
+      }
+    ]
+  })
+}
