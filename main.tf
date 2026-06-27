@@ -269,3 +269,129 @@ resource "aws_iam_policy" "github_actions" {
     ]
   })
 }
+
+# 通知用 SNS トピック
+resource "aws_sns_topic" "alert" {
+  name = "${var.project_name}-alert"
+}
+
+# メール通知の設定
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.alert.arn
+  protocol  = "email"
+  endpoint  = "your-email@example.com" # 通知先メールアドレス
+}
+
+resource "aws_cloudwatch_metric_alarm" "error_rate_4xx" {
+  alarm_name          = "${var.project_name}-4xx-error-rate"
+  alarm_description   = "CloudFront 4xxエラー率が10%を超えました"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2  # 2回連続で閾値を超えたら発火
+  threshold           = 10 # 10% 以上
+
+  # エラー率を計算（4xxエラー数 ÷ 総リクエスト数）
+  metric_query {
+    id          = "error_rate"
+    expression  = "errors / requests * 100"
+    label       = "4xx Error Rate"
+    return_data = true
+  }
+
+  metric_query {
+    id = "errors"
+    metric {
+      namespace   = "AWS/CloudFront"
+      metric_name = "4xxErrorRate"
+      period      = 300 # 5分間隔
+      stat        = "Average"
+      dimensions = {
+        DistributionId = aws_cloudfront_distribution.cdn.id
+        Region         = "Global"
+      }
+    }
+  }
+
+  metric_query {
+    id = "requests"
+    metric {
+      namespace   = "AWS/CloudFront"
+      metric_name = "Requests"
+      period      = 300
+      stat        = "Sum"
+      dimensions = {
+        DistributionId = aws_cloudfront_distribution.cdn.id
+        Region         = "Global"
+      }
+    }
+  }
+
+  alarm_actions = [aws_sns_topic.alert.arn] # アラーム発火時に SNS へ通知
+  ok_actions    = [aws_sns_topic.alert.arn] # 正常に戻った時にも通知
+}
+
+resource "aws_cloudwatch_metric_alarm" "error_rate_5xx" {
+  alarm_name          = "${var.project_name}-5xx-error-rate"
+  alarm_description   = "CloudFront 5xxエラー率が1%を超えました"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  threshold           = 1 # 1% 以上（5xxは致命的なので低めに設定）
+
+  metric_query {
+    id          = "error_rate"
+    expression  = "errors / requests * 100"
+    label       = "5xx Error Rate"
+    return_data = true
+  }
+
+  metric_query {
+    id = "errors"
+    metric {
+      namespace   = "AWS/CloudFront"
+      metric_name = "5xxErrorRate"
+      period      = 300
+      stat        = "Average"
+      dimensions = {
+        DistributionId = aws_cloudfront_distribution.cdn.id
+        Region         = "Global"
+      }
+    }
+  }
+
+  metric_query {
+    id = "requests"
+    metric {
+      namespace   = "AWS/CloudFront"
+      metric_name = "Requests"
+      period      = 300
+      stat        = "Sum"
+      dimensions = {
+        DistributionId = aws_cloudfront_distribution.cdn.id
+        Region         = "Global"
+      }
+    }
+  }
+
+  alarm_actions = [aws_sns_topic.alert.arn]
+  ok_actions    = [aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "request_count" {
+  alarm_name          = "${var.project_name}-request-count"
+  alarm_description   = "CloudFront リクエスト数が急増しています（DDoS の可能性）"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  threshold           = 1000 # 5分間で1000リクエスト以上
+
+  namespace   = "AWS/CloudFront"
+  metric_name = "Requests"
+  period      = 300
+  statistic   = "Sum"
+
+  dimensions = {
+    DistributionId = aws_cloudfront_distribution.cdn.id
+    Region         = "Global"
+  }
+
+  alarm_actions = [aws_sns_topic.alert.arn]
+  ok_actions    = [aws_sns_topic.alert.arn]
+}
